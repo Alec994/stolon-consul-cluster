@@ -91,12 +91,4 @@
         vesion: v0.17.0
         os: linux
         arch: amd64
-
-    - name: something
-      become: true
-      become_user: consul 
-    
-      
-
-
 ...

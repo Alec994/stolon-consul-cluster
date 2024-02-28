@@ -1,0 +1,5 @@
+---
+- name: Deploying with roles
+  hosts: demo
+  roles:
+    - consul_user
