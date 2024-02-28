@@ -1,0 +1,21 @@
+- name: Creating users and creating directories, giving the aproprite rools
+  hosts: demo
+  tasks:
+    - name: Creating user consul
+      ansible.builtin.user:
+        name: smith
+        shell: /bin/bash
+    - name: Creating directory for consul database
+      ansible.builtin.file:
+        path: /var/lib/consul_1
+        owner: consul
+        group: consul
+        recurse: true
+        mode: "0700"
+    - name: Creating directory for postgresql
+      ansible.builtin.file:
+        path: /data
+        owner: postgres
+        group: postgres
+        recurse: true
+        mode: "0700"

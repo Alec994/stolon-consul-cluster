@@ -1,0 +1,102 @@
+---
+- name: Downloading and installing required packeges
+  hosts: demo
+  vars:
+    version: 1.6.2
+    os: linux
+    arch: amd64
+    go_url: "https://storage.googleapis.com/golang/go1.6.2.linux-amd64.tar.gz"
+    stolon_url: "https://github.com/sorintlab/stolon/releases/download/v0.17.0/stolon-v0.17.0-linux-amd64.tar.gz"
+    consul_url: "https://github.com/hashicorp/consul-template.git"
+
+
+  tasks:
+    - name: Downloading postgresql
+      ansible.builtin.yum:
+        name:
+          - postgresql-server
+        state: present
+    - name: Installing yum-utils
+      ansible.builtin.yum:
+        name: yum-utils
+        state: present
+
+    - name: Creating required directories
+      ansible.builtin.file:
+        path: /root/{{ item }}
+        state: directory
+        mode: "755"
+      loop:
+        - consul
+        - go
+        - stolon
+
+
+    - name: Downloading golang and installing
+      ansible.builtin.get_url:
+        url: "{{ go_url }}"
+        dest: /srv/
+        mode: "0750"
+
+    - name: Unzipping downloaded file
+      ansible.builtin.unarchive:
+        src: /srv/go{{ version }}.{{ os }}-{{ arch }}.tar.gz
+        remote_src: true
+        dest: /srv/go
+
+    - name: Copying the content of go directory
+      ansible.builtin.copy:
+        src: /srv/go/go/bin/
+        dest: /usr/local/bin/
+        remote_src: true
+        mode: "0755"
+
+    - name: Downloading consul
+      ansible.builtin.git:
+        repo: "{{ consul_url }}"
+        clone: true
+        dest: /root/consul
+        version: v0.37.1
+
+    - name: Copying consul to /usr/local/bin/
+      ansible.builtin.copy:
+        src: /usr/bin/consul
+        dest: /usr/local/bin/
+        remote_src: true
+        mode: "0755"
+
+    - name: Installing stolon from git repository
+      ansible.builtin.get_url:
+        url: "{{ stolon_url }}"
+        dest: /root/
+        mode: "0755"
+
+    - name: Unziping stolon
+      ansible.builtin.unarchive:
+        src: /root/stolon-{{ vesion }}-{{ os }}-{{ arch }}.tar.gz
+        dest: /root/
+        remote_src: true
+      vars:
+        vesion: v0.17.0
+        os: linux
+        arch: amd64
+
+    - name: Copying the content of go directory
+      ansible.builtin.copy:
+        src: /root/stolon-{{ vesion }}-{{ os }}-{{ arch }}/bin/
+        dest: /usr/local/bin/
+        remote_src: true
+        mode: "0755"
+      vars:
+        vesion: v0.17.0
+        os: linux
+        arch: amd64
+
+    - name: something
+      become: true
+      become_user: consul 
+    
+      
+
+
+...
