@@ -7,11 +7,14 @@
         shell: /bin/bash
     - name: Creating directory for consul database
       ansible.builtin.file:
-        path: /var/lib/consul_1
+        path: "{{ item }}"
         owner: consul
         group: consul
         recurse: true
         mode: "0700"
+      loop:
+        - /var/lib/consul_1
+        - /etc/consul.d
     - name: Creating directory for postgresql
       ansible.builtin.file:
         path: /data

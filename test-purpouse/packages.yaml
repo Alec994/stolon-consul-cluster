@@ -37,6 +37,7 @@
         url: "{{ go_url }}"
         dest: /srv/
         mode: "0750"
+      
 
     - name: Unzipping downloaded file
       ansible.builtin.unarchive:

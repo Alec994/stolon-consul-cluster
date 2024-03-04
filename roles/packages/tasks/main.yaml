@@ -1,4 +1,17 @@
 ---
+
+- name: Updating distributive
+  ansible.builtin.yum:
+    update_cache: true
+  changed_when: false
+  when: ansible_distribution == "CentOS"
+
+- name: Updateign Debian distributive
+  ansible.builtin.apt:
+    update_cache: true
+  changed_when: false
+  when: ansible_distribution == "Ubuntu"
+
 - name: Downloading postgresql
   ansible.builtin.yum:
     name:
@@ -28,6 +41,12 @@
   vars:
     go_url: "https://storage.googleapis.com/golang/go1.6.2.linux-amd64.tar.gz"
 
+- name: Creating /srv/go direcroty
+  ansible.builtin.file:
+    path: /srv/go
+    state: directory
+    mode: "0755"
+
 - name: Unzipping downloaded file
   ansible.builtin.unarchive:
     src: /srv/go{{ version }}.{{ os }}-{{ arch }}.tar.gz
@@ -46,13 +65,20 @@
     mode: "0755"
 
 - name: Downloading consul
-  ansible.builtin.git:
-    repo: "{{ consul_url }}"
-    clone: true
+  ansible.builtin.get_url:
+    url: "{{ consul_url }}"
     dest: /root/consul
-    version: v0.37.1
+    mode: "0755"
   vars:
-    consul_url: "https://github.com/hashicorp/consul-template.git"
+    consul_url: "https://github.com/hashicorp/consul-template/archive/refs/tags/v0.37.1.tar.gz"
+
+- name: Unziping Consul archives
+  ansible.builtin.unarchive:
+    src: /root/consul/consul-template-{{ vesion }}.tar.gz
+    dest: /root/
+    remote_src: true
+  vars:
+    vesion: 0.37.1
 
 - name: Copying consul to /usr/local/bin/
   ansible.builtin.copy:
@@ -60,6 +86,7 @@
     dest: /usr/local/bin/
     remote_src: true
     mode: "0755"
+
 
 - name: Installing stolon from git repository
   ansible.builtin.get_url:

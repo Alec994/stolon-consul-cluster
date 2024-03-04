@@ -1,0 +1,18 @@
+---
+- name: Consul install
+  become: false
+  become_user: consul
+  vars:
+    ip_address_list: ['192.168.121.11', '192.168.121.12', '192.168.121.14']
+    bootstrap_expect: 3
+    datacenter_name: demo
+    data_dir: /var/lib/consul
+    config_dir: /etc/consul.d
+
+
+  block:
+    - name: Executing consul command on node1
+      ansible.builtin.shell: "nohup consul agent -server -bootstrap-expect='{{ bootstrap_expect }}' -datacenter='{{ datacenter_name }}' \
+        -data-dir='{{ data_dir }}' -node='{{ ansible_host }}' -client 0.0.0.0 -bind='{{ ip_address_list[2] }}' \
+        -join='{{ ip_address_list[0] }}' -enable-script-checks=true -config-dir=/etc/consul.d -ui &"
+      changed_when: true

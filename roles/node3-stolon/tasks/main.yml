@@ -1,0 +1,42 @@
+- name: Stolon configuration
+  become: false
+  become_user: postgres
+  vars:
+    ip_address_list: ['192.168.121.11', '192.168.121.12', '192.168.121.14']
+    cluster_name: stolon-keeper
+    store_backend: consul
+    store_endpoints: http://127.0.0.1
+    store_endpoint_port: 8500
+    cluster_uid: ['postgres0', 'postgres1', 'postgres2']
+    data_dir: /data/
+    pg_su_user: postgres
+    pg_repl_user: repl
+    pg_su_user_passwd: P@ssw0rd
+    pg_repl_user_passwd: P@ssw0rd
+    pg_port: 5432
+    pg_bin_path: /usr/bin/
+    proxy_port: 15432
+
+  block:
+    - name: Stolon sentinel command
+      ansible.builtin.shell: "nohup stolon-sentinel --cluster-name '{{ cluster_name }}' \
+       --store-backend='{{ store_backend }}' --store-endpoints='{{ store_endpoints }}':'{{ store_endpoint_port }}' &"
+      changed_when: true
+
+    - name: Running keeper command
+      ansible.builtin.shell: "nohup stolon-keeper --cluster-name '{{ cluster_name }}' --store-backend='{{ store_backend }}' \
+       --store-endpoints='{{ store_endpoints }}':'{{ store_endpoint_port }}' --uid '{{ cluster_uid[0] }}' --data-dir '{{ data_dir }}' \
+       --pg-su-username='{{ pg_su_user }}' --pg-su-password='{{ pg_su_user_passwd }}' --pg-repl-username='{{ pg_repl_user }}' \
+       --pg-repl-password='{{ pg_repl_user_passwd }}' --pg-listen-address='{{ ip_address_list[3] }}' \
+       --pg-port='{{ pg_port }}' --pg-bin-path='{{ pg_bin_path }}' &"
+      changed_when: true
+
+    - name: Sentinel running command
+      ansible.builtin.shell: "nohup stolon-sentinel --cluster-name '{{ cluster_name }}' --store-backend='{{ store_backend }}' \
+        --store-endpoints='{{ store_endpoints }}':'{{ store_endpoint_port }}' &"
+      changed_when: true
+
+    - name: Starting proxy
+      ansible.builtin.shell: "nohup stolon-sentinel --cluster-name '{{ cluster_name }}' --store-backend='{{ store_backend }}' \
+        --store-endpoints='{{ store_endpoints }}':'{{ store_endpoint_port }}' --listen-address='{{ ip_address_list[0] }}' --port='{{ proxy_port }}' &"
+      changed_when: true
