@@ -1,6 +1,6 @@
 ---
 - name: Consul install
-  become: false
+  become: true
   become_user: consul
   vars:
     ip_address_list: ['192.168.121.11', '192.168.121.12', '192.168.121.14']
@@ -11,8 +11,28 @@
 
 
   block:
-    - name: Executing consul command on node1
-      ansible.builtin.shell: "nohup consul agent -server -bootstrap-expect='{{ bootstrap_expect }}' -datacenter='{{ datacenter_name }}' \
-        -data-dir='{{ data_dir }}' -node='{{ ansible_host }}' -client 0.0.0.0 -bind='{{ ip_address_list[0] }}' \
-        -join='{{ ip_address_list[0] }}' -enable-script-checks=true -config-dir=/etc/consul.d -ui &"
+    - name: Genereting consul encrypt
+      ansible.builtin.command: "consul keygen"
       changed_when: true
+      register: key_content
+
+    - name: Putting key to template
+      ansible.builtin.template:
+        src: templates/consul.conf.j2
+        dest: /etc/consul.d/consul.hcl
+        mode: "0755"
+      vars:
+        key_content: "key_content['stdout']"
+
+    - name: Creating consul.service
+      ansible.builtin.template:
+        src: templates/consul.service.j2
+        dest: /usr/lib/systemd/system/consul.service
+        mode: "0755"
+
+    - name: Reloading daemon
+      ansible.builtin.systemd:
+        state: restarted
+        daemon_reload: true
+        name: consul.service
+

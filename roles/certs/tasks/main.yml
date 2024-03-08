@@ -1,0 +1,64 @@
+- name: Genereting consul encrypt
+  ansible.builtin.command: "consul keygen"
+  changed_when: true
+  register: key_content
+
+- name: Putting key to template
+  ansible.builtin.template:
+    src: templates/consul.conf.j2
+    dest: /etc/consul.d/consul.hcl
+    mode: "0755"
+  vars:
+    key_content: "key_content['stdout']"
+
+- name: Creating temperary direcroty
+  ansible.builtin.file:
+    path: /tmp/certs
+    state: directory
+    owner: root
+    group: root
+    mode: "0600"
+
+- name: Genereting certificates
+  ansible.builtin.command:
+    chdir: /tmp/certs
+    cmd: "/usr/local/bin/consul tls ca create"
+  changed_when: true
+
+- name: Genereting certificates
+  ansible.builtin.command:
+    chdir: /tmp/certs
+    cmd: /usr/local/bin/consul tls cert create -server -dc demo
+  changed_when: true
+
+- name: Copiying content of /tmp/certs
+  ansible.builtin.copy:
+    src: /tmp/certs
+    dest: /etc/consul.d/
+    remote_src: true
+    owner: consul
+    group: consul
+    mode: "0755"
+  failed_when: false
+
+- name: Removing content of certs
+  ansible.builtin.file:
+    path: /tmp/certs
+    state: absent
+
+- name: Genereting certificates
+  ansible.builtin.command:
+    cmd: chown -R consul:consul /etc/consul.d/certs
+  changed_when: true
+
+- name: Creating consul service role
+  ansible.builtin.template:
+    src: templates/consul.service.j2
+    dest: /usr/lib/systemd/system/consul.service
+    mode: "0755"
+
+- name: Reloading daemon
+  ansible.builtin.systemd:
+    state: restarted
+    daemon_reload: true
+    name: consul.service

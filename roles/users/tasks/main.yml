@@ -10,8 +10,10 @@
     recurse: true
     mode: "0700"
   loop:
-    - /var/lib/consul_1
+    - /var/lib/consul
     - /etc/consul.d
+    - /etc/consul.d/certs
+
 - name: Creating directory for postgresql
   ansible.builtin.file:
     path: /data

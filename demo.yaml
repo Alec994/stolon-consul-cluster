@@ -1,55 +1,24 @@
 ---
-- hosts: web01
-  name: Testing playbook
-  become: true
-  become_user: postgres
-  vars:
-    ip_address_list: ['192.168.121.11', '192.168.121.12', '192.168.121.14']
-    cluster_name: stolon-keeper
-    store_backend: consul
-    store_endpoints: http://127.0.0.1
-    store_endpoint_port: 8500
-    cluster_uid: ['postgres0', 'postgres1', 'postgres2']
-    data_dir: /data/
-    pg_su_user: postgres
-    pg_repl_user: repl
-    pg_su_user_passwd: P@ssw0rd
-    pg_repl_user_passwd: P@ssw0rd
-    pg_port: 5432
-    pg_bin_path: /usr/bin/
-    proxy_port: 15432
+- name: Genereting consul encrypt
+  hosts: web01
+  # become: false
+  # become_user: consul
   tasks:
-    - name: Getting user status
-      ansible.builtin.command: whoami
-      register: whoami
+    - name: Creating consul.service
+      ansible.builtin.template:
+        src: templates/consul.service.j2
+        dest: /usr/lib/systemd/system/consul.service
+        mode: "0755"
+
+    - name: Reloading daemon
+      ansible.builtin.systemd:
+        state: restarted
+        daemon_reload: true
+        name: consul.service
+
+    - name: Starting ACL bootstrap
+      ansible.builtin.command:
+        cmd: "consul acl bootstrap -format=json | tee /etc/consul.d/certs/bootstrap_token.json"
       changed_when: true
 
-    # - name: Creating bash script in postgres directory
-
-
-    - name: Printing user status
-      ansible.builtin.debug:
-        msg: "{{ whoami.stdout }}"
-
-    - name: "Initializing Stolon on node1"
-      ansible.builtin.command: ls -la
-      register: output
-      changed_when: true
-
-    - name: Debug information
-      ansible.builtin.debug:
-        msg: "{{ ansible_env }}"
-
-    - name: Printing output
-      ansible.builtin.debug:
-        msg: "{{ output.stdout_lines }}"
-
-
-
-    # - name: "Initializing Stolon on node1"
-    #   ansible.builtin.command: /var/lib/pgsql/demo.sh
-    #   changed_when: true
-
-    - name: Executing stolon command
-      ansible.builtin.shell: "echo 'yes' | /usr/local/bin/stolonctl --cluster-name stolon-cluster --store-backend=consul --store-endpoints=http://127.0.0.1:8500 init"
-      changed_when: true
+# consul acl bootstrap -format=json | tee /etc/consul.d/certs/bootstrap_token.json

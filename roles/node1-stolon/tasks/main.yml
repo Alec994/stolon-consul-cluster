@@ -27,5 +27,5 @@
         msg: "{{ whoami.stdout }}"
 
     - name: "Initializing Stolon on node1"
-      ansible.builtin.shell: sh /var/lib/pgsql/demo.sh
+      ansible.builtin.command: sh /var/lib/pgsql/demo.sh
       changed_when: true
