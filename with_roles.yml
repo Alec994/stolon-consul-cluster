@@ -1,0 +1,6 @@
+- name: Installing pachages
+  hosts: demo
+  become: true
+  become_user: root
+  roles:
+   - packages

@@ -1,25 +1,24 @@
 ---
 - name: Downloading and installing required packeges
   hosts: demo
+  become: true
+  become_user: root
   vars:
-    version: 1.6.2
+    version: 1.22.1
     os: linux
     arch: amd64
-    go_url: "https://storage.googleapis.com/golang/go1.6.2.linux-amd64.tar.gz"
+    go_url: "https://go.dev/dl/go1.22.1.linux-amd64.tar.gz"
     stolon_url: "https://github.com/sorintlab/stolon/releases/download/v0.17.0/stolon-v0.17.0-linux-amd64.tar.gz"
     consul_url: "https://github.com/hashicorp/consul-template.git"
-
-
   tasks:
     - name: Downloading postgresql
       ansible.builtin.yum:
         name:
           - postgresql-server
+          - yum-utils
         state: present
-    - name: Installing yum-utils
-      ansible.builtin.yum:
-        name: yum-utils
-        state: present
+      become: true
+      become_user: root
 
     - name: Creating required directories
       ansible.builtin.file:
@@ -31,40 +30,31 @@
         - go
         - stolon
 
-
     - name: Downloading golang and installing
       ansible.builtin.get_url:
         url: "{{ go_url }}"
         dest: /srv/
         mode: "0750"
       
-
     - name: Unzipping downloaded file
       ansible.builtin.unarchive:
         src: /srv/go{{ version }}.{{ os }}-{{ arch }}.tar.gz
         remote_src: true
-        dest: /srv/go
-
-    - name: Copying the content of go directory
-      ansible.builtin.copy:
-        src: /srv/go/go/bin/
-        dest: /usr/local/bin/
-        remote_src: true
-        mode: "0755"
+        dest: /usr/local
 
     - name: Downloading consul
-      ansible.builtin.git:
-        repo: "{{ consul_url }}"
-        clone: true
-        dest: /root/consul
-        version: v0.37.1
-
-    - name: Copying consul to /usr/local/bin/
       ansible.builtin.copy:
-        src: /usr/bin/consul
+        src: /home/user/playground/stolon-consul-cluster/distr/consul_1.18.0_linux_amd64.zip
+        dest: /root/consul
+        mode: "0755"
+        
+
+    - name: Consul Unziping
+      ansible.builtin.unarchive:
+        src: /root/consul/consul_1.18.0_linux_amd64.zip
         dest: /usr/local/bin/
         remote_src: true
-        mode: "0755"
+
 
     - name: Installing stolon from git repository
       ansible.builtin.get_url:

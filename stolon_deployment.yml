@@ -1,0 +1,41 @@
+---
+- name: Sotolon deployment
+  hosts: demo
+  become: true
+  become_user: root
+  tasks:
+    - name: Setting up stolon services to systemd
+      ansible.builtin.template:
+        src: templates/{{ item }}.j2
+        dest: /etc/systemd/system/{{ item }}
+        mode: "0644"
+      loop:
+        - stolon-proxy.service
+        - stolon-sentinel.service
+        - stolon-keeper.service
+
+    - name: Setting up stolon configurations to systemd
+      ansible.builtin.template:
+        src: templates/{{ item }}.j2
+        dest: /etc/sysconfig/{{ item }}
+        mode: "0644"
+      loop:
+        - stolon-proxy
+        - stolon-sentinel
+        - stolon-keeper
+      vars:
+        - stkeeper_uid: "postgres_{{ inventory_hostname  }}"
+      
+    - name: Service reload and start consul
+      ansible.builtin.systemd:
+        daemon_reload: true
+        state: restarted
+        name: "{{ item }}"
+      loop:
+        - stolon-proxy.service
+        - stolon-sentinel.service
+        - stolon-keeper.service
+      
+
+    
+    

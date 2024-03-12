@@ -1,0 +1,16 @@
+# /etc/sysconfig/stolon-proxy
+
+# default configuration values
+STPROXY_CLUSTER_NAME=stolon-cluster
+STPROXY_LISTEN_ADDRESS={{ ansible_host }}
+STPROXY_PORT=15432
+
+# store configuration
+STPROXY_STORE_BACKEND=consul
+STPROXY_STORE_ENDPOINTS=127.0.0.1:8500
+
+# set this for debugging
+# STPROXY_DEBUG=true
+
+# add any extra command line options to pass the stolon-keeper binary
+#EXTRA_OPTS=
