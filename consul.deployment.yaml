@@ -1,0 +1,151 @@
+---
+- name: Stopping consul services
+  hosts: demo
+  tasks:
+    - name: Stopping service
+      ansible.builtin.systemd_service:
+        state: stopped
+        name: consul.service
+
+    - name: Deleting old data
+      ansible.builtin.file:
+        path: /var/lib/consul
+        state: absent
+
+
+    - name: Creating directory
+      ansible.builtin.file:
+        path: /var/lib/consul
+        state: directory
+        owner: consul
+        group: consul
+        mode: "0755"
+        recurse: true
+
+# Generating encrypted key in local host
+- name: Generating key
+  hosts: localhost
+  tasks:
+    - name: Generating encrypted key
+      ansible.builtin.command:
+        cmd: "openssl rand -hex 16"
+      changed_when: true
+      register: key
+
+    - name: Pushing key to jinja2-file
+      ansible.builtin.lineinfile:
+        path: /root/playground/playbooks/stolon/playbooks/templates/consul.conf.j2
+        regexp: "^encrypt"
+        line: 'encrypt    =   "{{ key.stdout }}"'
+
+# Deploying consul configs
+- name: Deploying consul config files
+  hosts: demo
+  tasks:
+    - name: Deploying consul service conf file
+      ansible.builtin.template:
+        src: templates/consul.service.j2
+        dest: /usr/lib/systemd/system/consul.service
+        mode: "0755"
+    - name: Deploying consul config file
+      ansible.builtin.template:
+        src: templates/consul.conf.j2
+        dest: /etc/consul.d/consul.hcl
+        mode: "0755"
+    - name: Consul Daemon reload
+      ansible.builtin.systemd:
+        daemon_reload: true
+        state: restarted
+        name: consul.service
+
+# Enabling ALC token encryption
+- name: Applaying ACL allow configuration to all nodes
+  hosts: demo
+  tasks:
+    - name: Pushing ALC allow policy to nodes
+      ansible.builtin.template:
+        src: templates/acl.j2
+        dest: /etc/consul.d/consul.hcl
+        mode: "0755"
+
+
+    - name: Consul service restart
+      ansible.builtin.systemd_service:
+        state: restarted
+        name: consul.service
+
+# Bootstraping acl
+- name: Bootstraping alc in one of the nodes
+  hosts: first_node
+  tasks:
+    - name: Bootstraping and saving the content to the json file
+      ansible.builtin.shell:
+        cmd: |
+          set -o pipefail
+          consul acl bootstrap -format=json | tee /etc/consul.d/bootstrap_token.json
+      changed_when: true
+      become: true
+      become_user: consul
+
+    - name: Fetching from json file SecretID token and exporting it to env
+      ansible.builtin.shell:
+        cmd: |
+          set -o pipefail
+          cat /etc/consul.d/bootstrap_token.json | jq -r '.SecretID'
+      changed_when: true
+      register: secret_token
+
+    - name: Removing old token
+      ansible.builtin.lineinfile:
+        path: /root/.bashrc
+        regexp: ^export\s+CONSUL_HTTP_TOKEN\s*=\s*(\S*)\s*$
+        state: "absent"
+
+    - name: Setting env variable to export CONSUL_HTTP_TOKEN=<your_token_secret_id_here>
+      ansible.builtin.shell:
+        cmd: |
+          set -o pipefail
+          echo 'export CONSUL_HTTP_TOKEN="{{ secret_token.stdout }}"' >> ~/.bashrc
+      changed_when: true
+      become: true
+      become_user: root
+
+    - name: Deploying consul config file
+      ansible.builtin.template:
+        src: templates/acl.token.j2
+        dest: /etc/consul.d/consul.hcl
+        mode: "0755"
+
+    - name: Pushing token to jinja2-file
+      ansible.builtin.lineinfile:
+        path: /etc/consul.d/consul.hcl
+        regexp: \bagent\s*=
+        line: 'agent    =   "{{ secret_token.stdout }}"'
+
+    - name: Restarting consul service
+      ansible.builtin.systemd_service:
+        state: restarted
+        name: consul.service
+
+- name: Generating and configuring certificates
+  hosts: first_node
+  roles:
+    - certs
+
+# - name: Copiying certs to remote servers
+#   ansible.posix.synchronize:
+#     src: /etc/consul.d/certs/"{{ item }}"
+#     dest: /etc/consul.d/certs
+#   loop:
+#     - demo-server-consul-0-key.pem
+#     - demo-server-consul-0.pem
+#     - consul-agent-ca.pem
+    
+
+
+# AFTER DEPLOTING CERTS
+# - name: Relplacing jinja2-config file with consul.hcl
+#   ansible.builtin.template:
+#     src: templates/consul.certs.conf.j2
+#     dest: /etc/consul.d/consul.hcl
+#     mode: "0755"

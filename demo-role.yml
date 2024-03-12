@@ -1,5 +1,0 @@
----
-- name: Demo creating and copying certs
-  hosts: web01
-  roles:
-    - certs

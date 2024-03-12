@@ -18,7 +18,7 @@ ui_config {
 #verify_server_hostname = true
 
 # Gossip Encryption - generate key using consul keygen
-encrypt    =   "b55f4388835cb1ce068815f9d443918b"
+encrypt    =   "8fcbc07b2e3739b841a518ebe7a331bb"
 
 leave_on_terminate = true
 data_dir           = "/var/lib/consul"
@@ -41,14 +41,14 @@ retry_join = [{{ groups['all'] | map('extract', hostvars, 'ansible_host') | map(
 
 
 # Enable and Configure Consul ACLs
-#acl = {
-#  enabled        = true
-#  default_policy = "deny"
-#  down_policy    = "extend-cache"
+acl = {
+  enabled        = true
+  default_policy = "allow"
+  down_policy    = "extend-cache"
 #  tokens = {
 #    agent = "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
 #  }
-#}
+}
 
 # Set raft multiplier to lowest value (best performance) - 1 is recommended for Production servers
 performance = {

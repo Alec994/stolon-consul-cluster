@@ -1,16 +1,3 @@
-- name: Genereting consul encrypt
-  ansible.builtin.command: "consul keygen"
-  changed_when: true
-  register: key_content
-
-- name: Putting key to template
-  ansible.builtin.template:
-    src: templates/consul.conf.j2
-    dest: /etc/consul.d/consul.hcl
-    mode: "0755"
-  vars:
-    key_content: "key_content['stdout']"
-
 - name: Creating temperary direcroty
   ansible.builtin.file:
     path: /tmp/certs
@@ -50,12 +37,6 @@
   ansible.builtin.command:
     cmd: chown -R consul:consul /etc/consul.d/certs
   changed_when: true
-
-- name: Creating consul service role
-  ansible.builtin.template:
-    src: templates/consul.service.j2
-    dest: /usr/lib/systemd/system/consul.service
-    mode: "0755"
 
 - name: Reloading daemon
   ansible.builtin.systemd:
