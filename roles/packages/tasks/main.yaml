@@ -1,81 +1,73 @@
 ---
+- name: Downloading postgresql
+  ansible.builtin.yum:
+    name:
+      - postgresql-server
+      - yum-utils
+    state: present
+  become: true
+  become_user: root
+
+- name: Creating required directories
+  ansible.builtin.file:
+    path: /root/{{ item }}
+    state: directory
+    mode: "755"
+  loop:
+    - consul
+    - go
+    - stolon
+
+- name: Downloading golang and installing
+  ansible.builtin.get_url:
+    url: "https://go.dev/dl/go1.22.1.linux-amd64.tar.gz"
+    dest: /srv/
+    mode: "0750"
+  
+- name: Unzipping downloaded file
+  ansible.builtin.unarchive:
+    src: /srv/go1.22.1.linux-amd64.tar.gz
+    remote_src: true
+    dest: /usr/local
+
+- name: Downloading consul
+  ansible.builtin.copy:
+    src: /home/user/playground/stolon-consul-cluster/distr/consul_1.18.0_linux_amd64.zip
+    dest: /root/consul
+    mode: "0755"
+    
+
+- name: Consul Unziping
+  ansible.builtin.unarchive:
+    src: /root/consul/consul_1.18.0_linux_amd64.zip
+    dest: /usr/local/bin/
+    remote_src: true
+
+
+- name: Installing stolon from git repository
+  ansible.builtin.get_url:
+    url: "https://github.com/sorintlab/stolon/releases/download/v0.17.0/stolon-v0.17.0-linux-amd64.tar.gz"
+    dest: /root/
+    mode: "0755"
+
+- name: Unziping stolon
+  ansible.builtin.unarchive:
+    src: /root/stolon-{{ vesion }}-{{ os }}-{{ arch }}.tar.gz
+    dest: /root/
+    remote_src: true
   vars:
-    version: 1.22.1
+    vesion: v0.17.0
     os: linux
     arch: amd64
-    go_url: "https://go.dev/dl/go1.22.1.linux-amd64.tar.gz"
-    stolon_url: "https://github.com/sorintlab/stolon/releases/download/v0.17.0/stolon-v0.17.0-linux-amd64.tar.gz"
-    consul_url: "https://github.com/hashicorp/consul-template.git"
-  tasks:
-    - name: Downloading postgresql
-      ansible.builtin.yum:
-        name:
-          - postgresql-server
-          - yum-utils
-        state: present
-      become: true
-      become_user: root
 
-    - name: Creating required directories
-      ansible.builtin.file:
-        path: /root/{{ item }}
-        state: directory
-        mode: "755"
-      loop:
-        - consul
-        - go
-        - stolon
-
-    - name: Downloading golang and installing
-      ansible.builtin.get_url:
-        url: "{{ go_url }}"
-        dest: /srv/
-        mode: "0750"
-      
-    - name: Unzipping downloaded file
-      ansible.builtin.unarchive:
-        src: /srv/go{{ version }}.{{ os }}-{{ arch }}.tar.gz
-        remote_src: true
-        dest: /usr/local
-
-    - name: Downloading consul
-      ansible.builtin.copy:
-        src: /home/user/playground/stolon-consul-cluster/distr/consul_1.18.0_linux_amd64.zip
-        dest: /root/consul
-        mode: "0755"
-        
-
-    - name: Consul Unziping
-      ansible.builtin.unarchive:
-        src: /root/consul/consul_1.18.0_linux_amd64.zip
-        dest: /usr/local/bin/
-        remote_src: true
-
-
-    - name: Installing stolon from git repository
-      ansible.builtin.get_url:
-        url: "{{ stolon_url }}"
-        dest: /root/
-        mode: "0755"
-
-    - name: Unziping stolon
-      ansible.builtin.unarchive:
-        src: /root/stolon-{{ vesion }}-{{ os }}-{{ arch }}.tar.gz
-        dest: /root/
-        remote_src: true
-      vars:
-        vesion: v0.17.0
-        os: linux
-        arch: amd64
-
-    - name: Copying the content of go directory
-      ansible.builtin.copy:
-        src: /root/stolon-{{ vesion }}-{{ os }}-{{ arch }}/bin/
-        dest: /usr/local/bin/
-        remote_src: true
-        mode: "0755"
-      vars:
-        vesion: v0.17.0
-        os: linux
-        arch: amd64
+- name: Copying the content of go directory
+  ansible.builtin.copy:
+    src: /root/stolon-{{ vesion }}-{{ os }}-{{ arch }}/bin/
+    dest: /usr/local/bin/
+    remote_src: true
+    mode: "0755"
+  vars:
+    vesion: v0.17.0
+    os: linux
+    arch: amd64
 ...
